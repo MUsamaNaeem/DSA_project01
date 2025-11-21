@@ -1,53 +1,38 @@
-# Use the C++ compiler
 CXX = g++
-# CXXFLAGS: -Wall (warnings), -g (debug symbols), -std=c++17, -pthread (for threads)
-CXXFLAGS = -Wall -g -std=c++17 -pthread
-# Tell the compiler to look for headers in the 'source' directory
-CPPFLAGS = -I./source
+# -pthread is required for httplib on Linux
+CXXFLAGS = -std=c++17 -Wall -pthread -I./include 
 
-# --- EXPLICITLY DEFINE ALL OBJECT FILES ---
-SERVER_OBJECTS = compiled/source/main.o compiled/source/server/server.o compiled/source/core/filesystem.o compiled/source/core/queue.o compiled/source/core/hash_table.o
-CLIENT_OBJECTS = compiled/source/client/client.o
+SRC_DIR = src
+OBJ_DIR = obj
+BIN_DIR = bin
 
-# Default 'make' command builds both targets
-all: compiled/server compiled/client
+# Source files
+SRCS = $(SRC_DIR)/Main.cpp \
+       $(SRC_DIR)/FileSystem.cpp \
+       $(SRC_DIR)/data_structures/UserMap.cpp \
+       $(SRC_DIR)/data_structures/RequestQueue.cpp
 
-# --- LINKING RULES ---
-# Rule to link the SERVER executable
-compiled/server: $(SERVER_OBJECTS)
-	$(CXX) $(CXXFLAGS) -o $@ $(SERVER_OBJECTS)
+# Object files
+OBJS = $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/%.o, $(SRCS))
 
-# Rule to link the CLIENT executable
-compiled/client: $(CLIENT_OBJECTS)
-	$(CXX) $(CXXFLAGS) -o $@ $(CLIENT_OBJECTS)
+# Executable Name
+TARGET = $(BIN_DIR)/ofs_server
 
-# --- COMPILATION RULES FOR EACH FILE INDIVIDUALLY ---
-# This removes all ambiguity for the make utility.
+all: $(TARGET)
 
-compiled/source/main.o: source/main.cpp
+$(TARGET): $(OBJS)
+	@mkdir -p $(BIN_DIR)
+	# Removed -lws2_32 because you are on Linux
+	$(CXX) $(CXXFLAGS) -o $@ $^
+
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	@mkdir -p $(dir $@)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-compiled/source/server/server.o: source/server/server.cpp
-	@mkdir -p $(dir $@)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
-
-compiled/source/core/filesystem.o: source/core/filesystem.cpp
-	@mkdir -p $(dir $@)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
-
-compiled/source/core/queue.o: source/core/queue.cpp
-	@mkdir -p $(dir $@)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
-
-compiled/source/core/hash_table.o: source/core/hash_table.cpp
-	@mkdir -p $(dir $@)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
-
-compiled/source/client/client.o: source/client/client.cpp
-	@mkdir -p $(dir $@)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
-
-# --- CLEAN RULE ---
 clean:
-	rm -rf compiled my_fs.omni
+	rm -rf $(OBJ_DIR) $(BIN_DIR) my_ofs.omni
+
+run: all
+	./$(TARGET)
+
+.PHONY: all clean run
